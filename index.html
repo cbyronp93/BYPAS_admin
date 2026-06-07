@@ -702,38 +702,49 @@ function agregarProveedor(){
 
 // ── SOCIOS ───────────────────────────────────────────────────
 function renderSocios() {
-  const cont=document.getElementById('sociosGrid');
-  cont.innerHTML=SOCIOS_CFG.map(s=>{
-    const movs=allData.socios.filter(m=>m.socio===s.nombre);
-    const aportes=movs.filter(m=>m.tipo==='aporte').reduce((sum,m)=>sum+m.monto,0);
-    const retiros=movs.filter(m=>m.tipo==='retiro').reduce((sum,m)=>sum+m.monto,0);
-    const neto=aportes-retiros;
-    return `<div class="socio-row">
-      <div class="avatar" style="background:${s.color}22;color:${s.color};border:1px solid ${s.color}44">${s.ini}</div>
-      <div class="socio-info">
-        <div class="socio-nombre">${s.nombre}</div>
-        <div class="socio-pct">${Math.round(s.pct*100)}% · ${movs.length} movimientos</div>
-      </div>
-      <div class="socio-nums">
-        <div class="socio-total" style="color:${s.color}">$${neto.toFixed(2)}</div>
-        <div class="socio-sub cs">↑$${aportes.toFixed(2)} ↓$${retiros.toFixed(2)}</div>
-      </div>
-    </div>`;
-  }).join('');
+  const cont = document.getElementById('sociosGrid');
 
-  // Tabla movimientos
-  const sorted=[...allData.socios].sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  document.getElementById('bodyAportes').innerHTML=sorted.map(m=>{
-    const cfg=SOCIOS_CFG.find(s=>s.nombre===m.socio);
-    const col=cfg?.color||'var(--blanco)';
-    return `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--blanco-s)">${m.fecha}</td>
-      <td style="font-weight:600;color:${col}">${m.socio}</td>
-      <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${m.tipo==='aporte'?'rgba(29,185,84,.15)':'rgba(230,57,70,.15)'};color:${m.tipo==='aporte'?'var(--verde)':'var(--rojo)'}">${m.tipo==='aporte'?'▲ APORTE':'▼ RETIRO'}</span></td>
-      <td class="cs">${m.desc}</td>
-      <td class="num" style="color:${m.tipo==='aporte'?'var(--verde)':'var(--rojo)'}">$${m.monto.toFixed(2)}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--blanco-s)">Sin movimientos</td></tr>';
+  const netos = SOCIOS_CFG.map(s => {
+    const movs    = allData.socios.filter(m => m.socio === s.nombre);
+    const aportes = movs.filter(m => m.tipo === 'aporte').reduce((sum,m) => sum + m.monto, 0);
+    const retiros = movs.filter(m => m.tipo === 'retiro').reduce((sum,m) => sum + m.monto, 0);
+    return Object.assign({}, s, { movs, aportes, retiros, neto: aportes - retiros });
+  });
+
+  const totalInvertido = netos.reduce((s, x) => s + Math.max(x.neto, 0), 0);
+
+  cont.innerHTML = netos.map(s => {
+    const deberiaHaber = totalInvertido * s.pct;
+    const diferencia   = s.neto - deberiaHaber;
+    const esFavor      = diferencia >= 0;
+    const diffColor    = esFavor ? 'var(--verde)' : 'var(--rojo)';
+    const pctBar       = Math.min(deberiaHaber > 0 ? s.neto / deberiaHaber * 100 : 0, 100);
+
+    return '<div class="socio-row">' +
+      '<div class="avatar" style="background:' + s.color + '22;color:' + s.color + ';border:1px solid ' + s.color + '44">' + s.ini + '</div>' +
+      '<div class="socio-info">' +
+        '<div class="socio-nombre">' + s.nombre + '</div>' +
+        '<div class="socio-pct">' + Math.round(s.pct * 100) + '% &middot; ' + s.movs.length + ' movimientos</div>' +
+        '<div style="margin-top:6px;font-size:11px;color:var(--blanco-s)">' +
+          'Total invertido: <span style="font-family:DM Mono,monospace;color:' + s.color + '">$' + totalInvertido.toFixed(2) + '</span>' +
+          ' &nbsp;&middot;&nbsp; Le corresponde: <span style="font-family:DM Mono,monospace">$' + deberiaHaber.toFixed(2) + '</span>' +
+        '</div>' +
+        '<div style="margin-top:6px;height:6px;background:var(--gris-b);border-radius:3px;overflow:hidden;max-width:260px">' +
+          '<div style="height:100%;border-radius:3px;background:' + s.color + ';width:' + pctBar + '%;transition:width .8s"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="socio-nums">' +
+        '<div class="socio-total" style="color:' + s.color + '">$' + s.neto.toFixed(2) + '</div>' +
+        '<div style="font-size:12px;color:' + diffColor + ';margin-top:4px;font-family:DM Mono,monospace">' +
+          (esFavor ? '▲ Saldo a favor' : '▼ Falta aportar') +
+        '</div>' +
+        '<div style="font-size:15px;font-weight:600;color:' + diffColor + ';font-family:DM Mono,monospace">' +
+          (esFavor ? '+' : '') + diferencia.toFixed(2) +
+        '</div>' +
+        '<div class="socio-sub cs" style="margin-top:4px">↑$' + s.aportes.toFixed(2) + ' ↓$' + s.retiros.toFixed(2) + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function agregarMovSocio(){
