@@ -554,7 +554,7 @@ const SOCIOS_CONFIG = [
 ];
 const PUNTO_EQ_MENSUAL = 8000;
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXxGnYR7l5ZCR_kuYSVTr2i9yVewBf1gCpl6Mn0d71lztnGCO4h5N9vnZIQQCfVRnA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzef6oRQJTb7cR3nTD-ATqvYJnusl3Jn3Ug4ppMNUcx4tC6VZ_pWLxjTpx5n2slCr83/exec';
 let allData = { registros:[], proveedores:[], aportes:[] };
 
 // ── INIT ────────────────────────────────────────────────────
@@ -582,12 +582,9 @@ async function cargarDatos() {
   btn.innerHTML = '<span class="spinner"></span> Cargando';
   
   // Primero cargar datos locales (siempre disponibles)
-  const local = JSON.parse(localStorage.getItem('brunch_registros') || '[]');
-  allData.registros = local.map(parseRow);
-  
-  // Leer desde Apps Script via JSONP (evita CORS)
+  // Leer desde Apps Script via JSONP
   await leerHoja('REGISTROS').then(rows => {
-    if (rows && rows.length > 1) allData.registros = rows.slice(1).map(parseRow);
+    if (rows && rows.length > 2) allData.registros = rows.slice(2).filter(r => r[0]).map(parseRow);
   });
   
   renderTodo();
@@ -616,14 +613,23 @@ function leerHoja(hoja) {
   });
 }
 
+function fmtFecha(v) {
+  if (!v) return '';
+  if (typeof v === 'object') return v.toISOString().split('T')[0];
+  return String(v).split('T')[0];
+}
+
 function parseRow(r) {
   return {
-    fecha: r[0] || '', diaSemana: r[1] || '', turno: r[2] || '', cajero: r[3] || '',
-    efectivo: parseFloat(r[3]) || 0,
+    fecha: fmtFecha(r[0]), diaSemana: r[1] || '', cajero: r[2] || '',
+    cajero:   r[2] || '',
+    efInicio: parseFloat(r[3]) || 0,
+    efCierre: parseFloat(r[4]) || 0,
+    efectivo: parseFloat(r[5]) || 0,
     tarjeta:  parseFloat(r[6]) || 0,
     jep:      parseFloat(r[7]) || 0,
     deuna:    parseFloat(r[8]) || 0,
-    transferencias: parseFloat(r[9]) || 0,
+    transferencias: parseFloat(r[9])  || 0,
     totalVentas:    parseFloat(r[10]) || 0,
     g1d: r[11]||'', g1v: parseFloat(r[12])||0,
     g2d: r[13]||'', g2v: parseFloat(r[14])||0,
