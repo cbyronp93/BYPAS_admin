@@ -439,10 +439,11 @@ async function cargarDatos() {
   btn.innerHTML = '<span class="spinner"></span> Cargando';
 
   // Cargar las 3 hojas en paralelo
-  const [regRows, contRows, socRows] = await Promise.all([
+  const [regRows, contRows, socRows, provRows] = await Promise.all([
     leerHoja('REGISTROS'),
     leerHoja('CONTABILIDAD'),
-    leerHoja('SOCIOS')
+    leerHoja('SOCIOS'),
+    leerHoja('PROVEEDORES')
   ]);
 
   // REGISTROS: fila 0=título, fila 1=encabezados, fila 2+=datos
@@ -460,17 +461,16 @@ async function cargarDatos() {
     ? socRows.slice(1).filter(r => r[0]).map(parseSocio)
     : [];
 
-  // Proveedores se mantienen en localStorage por ahora
-  allData.proveedores = JSON.parse(localStorage.getItem('brunch_prov') || '[]');
-  if (!allData.proveedores.length) {
-    allData.proveedores = [
-      { p:'ARRIENDO',    c:'Arriendo local',    m:1610,   f:'2026-01-05', e:'PENDIENTE' },
-      { p:'CONTADOR',    c:'Honorarios',         m:400,    f:'2025-11-15', e:'PENDIENTE' },
-      { p:'CUENCA LICOR',c:'Compra licores',     m:348.39, f:'2025-11-29', e:'PENDIENTE' },
-      { p:'DISAVES',     c:'Compra insumos',     m:249,    f:'2025-12-04', e:'PENDIENTE' },
-    ];
-    localStorage.setItem('brunch_prov', JSON.stringify(allData.proveedores));
-  }
+  // Proveedores desde Sheet
+  allData.proveedores = (provRows && provRows.length > 1)
+    ? provRows.slice(1).filter(r => r[0]).map(r => ({
+        p: r[0] || '',
+        c: r[1] || '',
+        m: +r[2] || 0,
+        f: fmtF(r[3]),
+        e: r[4] || 'PENDIENTE'
+      }))
+    : [];
 
   renderTodo();
   btn.classList.remove('loading');
@@ -678,16 +678,26 @@ function renderProveedores() {
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--blanco-s)">Sin deudas</td></tr>';
 }
 
-function cambiarProv(i,e){allData.proveedores[i].e=e;localStorage.setItem('brunch_prov',JSON.stringify(allData.proveedores));renderProveedores();}
+function cambiarProv(i,e){
+  allData.proveedores[i].e=e;
+  // Actualizar fila en Sheet (col E = estado, fila i+2 porque fila 1 = headers)
+  const p=allData.proveedores[i];
+  fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({hoja:'PROVEEDORES',accion:'update',fila:i+2,col:4,valor:e})}).catch(()=>{});
+  renderProveedores();
+}
 function agregarProveedor(){
   const p=v('pf-p'),c=v('pf-c'),m=+v('pf-m'),f=v('pf-f');
   if(!p||m<=0)return;
+  const fila=[p.toUpperCase(),c,m,f,'PENDIENTE'];
+  fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({hoja:'PROVEEDORES',values:fila})}).catch(()=>{});
   allData.proveedores.push({p:p.toUpperCase(),c,m,f,e:'PENDIENTE'});
-  localStorage.setItem('brunch_prov',JSON.stringify(allData.proveedores));
   renderProveedores();
   ['pf-p','pf-c','pf-m'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('provForm').classList.remove('open');
-  toast('ok','✅','Deuda registrada','');
+  toast('ok','✅','Deuda registrada','Recargando en 3 segundos...');
+  setTimeout(()=>cargarDatos(),3000);
 }
 
 // ── SOCIOS ───────────────────────────────────────────────────
