@@ -970,12 +970,11 @@ function detectarCat(nombre) {
 
 // ── CONTABILIDAD ─────────────────────────────────────────────
 let tipoActual = 'ingreso';
-let movimientos = JSON.parse(localStorage.getItem('brunch_movimientos') || '[]');
+let movimientos = [];
 let filtroActual = 'todos';
 
 function initContabilidad() {
-  const hoy = new Date().toISOString().split('T')[0];
-  document.getElementById('mov-fecha').value = hoy;
+  document.getElementById('mov-fecha').value = new Date().toISOString().split('T')[0];
   renderMovimientos();
   renderResumenCont();
 }
@@ -1009,12 +1008,10 @@ function guardarMovimiento() {
     return;
   }
 
-  const mov = { id: Date.now(), tipo: tipoActual, fecha, monto, cat, desc, metodo, comp, ts: new Date().toISOString() };
-  movimientos.unshift(mov);
-  localStorage.setItem('brunch_movimientos', JSON.stringify(movimientos));
+  const ts  = new Date().toISOString();
+  const fila = [fecha, tipoActual.toUpperCase(), cat, desc, monto, metodo, comp, ts];
 
-  // Enviar a Sheets via Apps Script
-  const fila = [fecha, tipoActual.toUpperCase(), cat, desc, monto, metodo, comp, mov.ts];
+  // Guardar en Sheet
   fetch(SCRIPT_URL, {
     method: 'POST',
     mode: 'no-cors',
@@ -1022,7 +1019,10 @@ function guardarMovimiento() {
     body: JSON.stringify({ hoja: 'CONTABILIDAD', values: fila })
   }).catch(() => {});
 
-  // Limpiar
+  // Agregar a memoria local solo para mostrar inmediatamente (sin recargar)
+  movimientos.unshift({ id: ts, tipo: tipoActual, fecha, monto, cat, desc, metodo, comp, ts });
+
+  // Limpiar campos
   document.getElementById('mov-monto').value = '';
   document.getElementById('mov-desc').value = '';
   document.getElementById('mov-comp').value = '';
@@ -1031,6 +1031,9 @@ function guardarMovimiento() {
   renderMovimientos();
   renderResumenCont();
   showToastAdmin('ok','✅', tipoActual==='ingreso'?'Ingreso registrado':'Gasto registrado', `$${monto.toFixed(2)} · ${cat}`);
+  
+  // Recargar desde Sheet después de 3 segundos para sincronizar
+  setTimeout(() => cargarDatos(), 3000);
 }
 
 function renderResumenCont() {
