@@ -457,8 +457,13 @@ async function cargarDatos() {
     : [];
 
   // SOCIOS: fila 0=encabezados, fila 1+=datos
+  // SOCIOS: skip header row, filter out empty rows and the header itself
+  const SOCIOS_NOMBRES = ['BYRON CHACON','MARIA PALACIOS','PABLO CALLE'];
   allData.socios = (socRows && socRows.length > 1)
-    ? socRows.slice(1).filter(r => r[0]).map(parseSocio)
+    ? socRows.slice(1)
+        .filter(r => r[0] && r[1] && !String(r[1]).toUpperCase().includes('SOCIO'))
+        .map(parseSocio)
+        .filter(s => SOCIOS_NOMBRES.includes(s.socio))
     : [];
 
   // Proveedores desde Sheet
@@ -482,10 +487,37 @@ function fmtF(v) {
   if (!v) return '';
   if (v instanceof Date) return v.toISOString().split('T')[0];
   const s = String(v);
-  // ISO date string
   if (s.includes('T')) return s.split('T')[0];
-  // Already YYYY-MM-DD
   return s.slice(0,10);
+}
+
+function parseMonto(v) {
+  if (!v && v !== 0) return 0;
+  if (typeof v === 'number') return v;
+  // Remove $, spaces, then handle . as thousands and , as decimal (ES format)
+  let s = String(v).trim().replace(/\$/g,'').replace(/\s/g,'');
+  // If has comma: could be 9.445,45 (ES) or 9,445.45 (EN)
+  if (s.includes(',') && s.includes('.')) {
+    // whichever comes last is the decimal separator
+    const lastComma = s.lastIndexOf(',');
+    const lastDot   = s.lastIndexOf('.');
+    if (lastComma > lastDot) {
+      // ES format: 9.445,45
+      s = s.replace(/\./g,'').replace(',','.');
+    } else {
+      // EN format: 9,445.45
+      s = s.replace(/,/g,'');
+    }
+  } else if (s.includes(',')) {
+    // Only comma: could be decimal (1,5) or thousands (9,000)
+    const parts = s.split(',');
+    if (parts[1] && parts[1].length <= 2) {
+      s = s.replace(',','.');  // decimal
+    } else {
+      s = s.replace(',','');   // thousands
+    }
+  }
+  return parseFloat(s) || 0;
 }
 
 function parseReg(r) {
@@ -529,13 +561,13 @@ function parseCont(r) {
 }
 
 function parseSocio(r) {
-  // Cols: 0=FECHA,1=SOCIO,2=TIPO,3=DESC,4=MONTO  (nuevo formato con tipo)
-  // Backward compat: si no hay col 2 tipo, es aporte
-  if (r.length >= 5) {
-    return { fecha:fmtF(r[0]), socio:r[1]||'', tipo:r[2]||'aporte', desc:r[3]||'', monto:+r[4]||0 };
+  const trim = v => String(v||'').trim().toUpperCase();
+  const socio = trim(r[1]);
+  const esNuevo = r.length >= 5 && (String(r[2]).toLowerCase()==='aporte' || String(r[2]).toLowerCase()==='retiro');
+  if (esNuevo) {
+    return { fecha:fmtF(r[0]), socio, tipo:String(r[2]).toLowerCase(), desc:String(r[3]||'').trim(), monto:parseMonto(r[4]) };
   }
-  // Old format: FECHA,SOCIO,DESC,MONTO
-  return { fecha:fmtF(r[0]), socio:r[1]||'', tipo:'aporte', desc:r[2]||'', monto:+r[3]||0 };
+  return { fecha:fmtF(r[0]), socio, tipo:'aporte', desc:String(r[2]||'').trim(), monto:parseMonto(r[3]) };
 }
 
 // ── FILTRO PERÍODO ───────────────────────────────────────────
@@ -749,16 +781,19 @@ function renderSocios() {
 
 function agregarMovSocio(){
   const socio=v('sf-s'),tipo=v('sf-t'),fecha=v('sf-f'),monto=+v('sf-m'),desc=v('sf-d');
-  if(!monto||monto<=0)return;
-  const fila=[fecha,socio,tipo,desc,monto];
+  if(!monto||monto<=0){toast('err','⚠️','Ingresa un monto válido','');return;}
+  // Write to Sheet: FECHA | SOCIO | TIPO | DESCRIPCIÓN | MONTO
+  const fila=[fecha, socio, tipo, desc, monto];
   fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({hoja:'SOCIOS',values:fila})}).catch(()=>{});
-  allData.socios.unshift({fecha,socio,tipo,desc,monto});
+  // Show immediately in UI
+  allData.socios.unshift({fecha, socio, tipo, desc, monto});
   renderSocios();
   ['sf-m','sf-d'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sf-f').value=new Date().toISOString().split('T')[0];
   document.getElementById('socioForm').classList.remove('open');
   toast('ok','✅',tipo==='aporte'?'Aporte registrado':'Retiro registrado','$'+monto.toFixed(2)+' · '+socio);
-  setTimeout(()=>cargarDatos(),3000);
+  setTimeout(()=>cargarDatos(),4000);
 }
 
 // ── CONTABILIDAD ─────────────────────────────────────────────
