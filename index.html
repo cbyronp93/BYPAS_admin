@@ -181,6 +181,59 @@ header{padding:28px 0 22px;display:flex;align-items:center;justify-content:space
   border-top-color:var(--dorado);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* CHART VENTAS DÍA A DÍA */
+.chart-box{width:100%;overflow-x:auto;padding-bottom:6px;}
+.chart-svg{display:block;}
+.chart-bar{cursor:pointer;transition:opacity .2s;}
+.chart-bar:hover{opacity:.7;}
+.chart-lbl{font-family:'DM Mono',monospace;font-size:9px;fill:var(--blanco-s);}
+.chart-grid-line{stroke:var(--gris-b);stroke-width:1;}
+.chart-axis{font-family:'DM Mono',monospace;font-size:9px;fill:var(--blanco-s);}
+
+/* CUADRE CAJA / BANCOS */
+.cuadre-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:640px){.cuadre-grid{grid-template-columns:1fr;}}
+.cuadre-line{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(42,42,54,.5);}
+.cuadre-line:last-child{border-bottom:none;}
+.cuadre-line .lbl,.cuadre-row .lbl{color:var(--blanco-s);font-size:13px;}
+.cuadre-line .val{font-family:'DM Mono',monospace;font-size:15px;}
+.cuadre-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;gap:10px;}
+.cuadre-input{background:var(--negro);border:1px solid var(--gris-b);border-radius:8px;padding:8px 10px;
+  color:var(--blanco);font-family:'DM Mono',monospace;font-size:14px;text-align:right;width:130px;outline:none;}
+.cuadre-input:focus{border-color:var(--dorado);}
+.cuadre-tot{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:10px;
+  margin-top:10px;background:var(--gris-m);border:1px solid var(--gris-b);}
+.cuadre-tot .lbl{font-weight:600;font-size:13px;}
+.cuadre-tot .val{font-family:'DM Mono',monospace;font-size:19px;font-weight:600;}
+.dinero-actual{background:linear-gradient(135deg,rgba(212,160,23,.16),rgba(212,160,23,.04));
+  border:1px solid rgba(212,160,23,.4);border-radius:12px;padding:18px 22px;margin-bottom:16px;text-align:center;}
+.da-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--blanco-s);}
+.da-valor{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:2px;color:var(--dorado);line-height:1.15;}
+.da-sub{font-size:12px;color:var(--blanco-s);}
+
+/* MODAL DETALLE */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;
+  align-items:center;justify-content:center;padding:20px;}
+.modal-back.open{display:flex;}
+.modal{background:var(--gris-o);border:1px solid var(--gris-b);border-radius:16px;max-width:520px;width:100%;
+  max-height:82vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.7);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--gris-b);}
+.modal-head span{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--dorado);}
+.modal-x{background:none;border:none;color:var(--blanco-s);font-size:26px;cursor:pointer;line-height:1;}
+.modal-x:hover{color:var(--blanco);}
+.modal-body{padding:14px 20px 20px;overflow-y:auto;}
+.det-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(42,42,54,.5);font-size:13px;}
+.det-row:last-child{border-bottom:none;}
+.det-row .dr-desc{color:var(--blanco);}
+.det-row .dr-sub{color:var(--blanco-s);font-size:11px;margin-top:1px;}
+.det-row .dr-val{font-family:'DM Mono',monospace;white-space:nowrap;}
+.det-tot{display:flex;justify-content:space-between;padding:12px 0 2px;font-weight:600;font-size:15px;
+  border-top:1px solid var(--gris-b);margin-top:6px;}
+.det-tot .dm{font-family:'DM Mono',monospace;}
+.clickable{cursor:pointer;}
+.clickable:hover{opacity:.85;}
+.link-det{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);
   background:var(--gris-m);border:1px solid var(--gris-b);border-radius:14px;padding:16px 24px;
@@ -199,11 +252,11 @@ header{padding:28px 0 22px;display:flex;align-items:center;justify-content:space
     <div class="logo">BRUNCH<span>PANEL ADMIN</span></div>
     <div class="header-right">
       <select class="periodo-sel" id="periodoSel" onchange="renderTodo()">
+        <option value="todo" selected>Todo (acumulado)</option>
         <option value="mes">Este mes</option>
         <option value="sem">Esta semana</option>
         <option value="q1">1ra quincena</option>
         <option value="q2">2da quincena</option>
-        <option value="todo">Todo</option>
       </select>
       <button class="btn-refresh" id="btnRefresh" onclick="cargarDatos()">
         <span>↻</span> Actualizar
@@ -222,13 +275,56 @@ header{padding:28px 0 22px;display:flex;align-items:center;justify-content:space
   <!-- RESUMEN -->
   <div class="panel active" id="panel-resumen">
     <div class="kpi-grid">
-      <div class="kpi dorado"><div class="kpi-label">Ventas del período</div><div class="kpi-valor" id="k-ventas">—</div><div class="kpi-sub" id="k-vsub"></div><div class="prog-bar"><div class="prog-fill" style="background:var(--dorado);width:0" id="pb-v"></div></div></div>
-      <div class="kpi rojo"><div class="kpi-label">Gastos operativos</div><div class="kpi-valor" id="k-gastos">—</div><div class="kpi-sub" id="k-gsub"></div></div>
+      <div class="kpi dorado clickable" onclick="verDetalleIngresos()" title="Clic para ver el detalle"><div class="kpi-label">Ingresos del período 🔍</div><div class="kpi-valor" id="k-ventas">—</div><div class="kpi-sub" id="k-vsub"></div><div class="prog-bar"><div class="prog-fill" style="background:var(--dorado);width:0" id="pb-v"></div></div></div>
+      <div class="kpi rojo clickable" onclick="verDetalleGastos()" title="Clic para ver el detalle"><div class="kpi-label">Gastos del período 🔍</div><div class="kpi-valor" id="k-gastos">—</div><div class="kpi-sub" id="k-gsub"></div></div>
       <div class="kpi verde"><div class="kpi-label">Resultado neto</div><div class="kpi-valor" id="k-neto">—</div><div class="kpi-sub" id="k-nsub"></div></div>
       <div class="kpi cyan"><div class="kpi-label">Noches operadas</div><div class="kpi-valor" id="k-noches">—</div><div class="kpi-sub">en el período</div></div>
       <div class="kpi morado"><div class="kpi-label">Ticket promedio</div><div class="kpi-valor" id="k-ticket">—</div><div class="kpi-sub">por noche</div></div>
       <div class="kpi azul"><div class="kpi-label">% Punto equilibrio</div><div class="kpi-valor" id="k-pe">—</div><div class="kpi-sub">Meta: $8,000/mes</div><div class="prog-bar"><div class="prog-fill" style="background:var(--azul);width:0" id="pb-pe"></div></div></div>
     </div>
+
+    <!-- GRÁFICA VENTAS DÍA A DÍA -->
+    <div class="card">
+      <div class="card-title">VENTAS DÍA A DÍA <span class="badge" id="chartBadge">—</span></div>
+      <div class="chart-box" id="ventasChart"></div>
+    </div>
+
+    <!-- DINERO QUE TENEMOS -->
+    <div class="card">
+      <div class="card-title">DINERO QUE TENEMOS <span class="badge" id="saldoFechaBadge"></span></div>
+      <div class="dinero-actual">
+        <div class="da-label">Dinero disponible actual</div>
+        <div class="da-valor" id="da-total">$0.00</div>
+        <div class="da-sub" id="da-sub"></div>
+      </div>
+      <div class="cuadre-grid">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dorado);margin-bottom:8px">Saldos reales de arranque (los escribes tú)</div>
+          <div class="cuadre-row"><span class="lbl">Fecha base</span><input class="cuadre-input" id="sa-fecha" type="date" oninput="calcDinero()" style="width:150px"></div>
+          <div class="cuadre-row"><span class="lbl">Aportes de socios desde</span><input class="cuadre-input" id="sa-aportesDesde" type="date" oninput="calcDinero()" style="width:150px"></div>
+          <div class="cuadre-row"><span class="lbl">Produbanco</span><input class="cuadre-input" id="sa-produ" type="number" step="0.01" placeholder="0.00" oninput="calcDinero()"></div>
+          <div class="cuadre-row"><span class="lbl">De Una</span><input class="cuadre-input" id="sa-deuna" type="number" step="0.01" placeholder="0.00" oninput="calcDinero()"></div>
+          <div class="cuadre-row"><span class="lbl">JEP</span><input class="cuadre-input" id="sa-jep" type="number" step="0.01" placeholder="0.00" oninput="calcDinero()"></div>
+          <div class="cuadre-row"><span class="lbl">Efectivo (último cuadre)</span><input class="cuadre-input" id="sa-efe" type="number" step="0.01" placeholder="0.00" oninput="calcDinero()"></div>
+          <div class="cuadre-line"><span class="lbl">Saldo base total</span><span class="val cd" id="da-base">$0.00</span></div>
+          <div class="cuadre-line"><span class="lbl">Anclado al momento</span><span class="val cs" id="sa-tsLabel" style="font-size:12px">—</span></div>
+          <button class="btn-sm" style="margin-top:10px;width:100%" onclick="fijarSaldos()">📌 Fijar estos saldos como el momento actual</button>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--blanco-s);margin-bottom:8px">Movimiento desde la fecha base</div>
+          <div class="cuadre-line"><span class="lbl">Ingresos (ventas + manual)</span><span class="val cv link-det" onclick="verDetalleIngresos()" id="da-ing">$0.00</span></div>
+          <div class="cuadre-line"><span class="lbl">Aportes de socios</span><span class="val cv" id="da-aportes">$0.00</span></div>
+          <div class="cuadre-line"><span class="lbl">Gastos (cajero + manual)</span><span class="val cr link-det" onclick="verDetalleGastos()" id="da-gas">$0.00</span></div>
+          <div class="cuadre-line"><span class="lbl">Retiros de socios</span><span class="val cr" id="da-retiros">$0.00</span></div>
+          <div class="cuadre-line"><span class="lbl">Movimiento neto</span><span class="val" id="da-neto">$0.00</span></div>
+          <div class="cuadre-line"><span class="lbl">Efectivo en caja actual (calc)</span><span class="val" id="da-efeactual">$0.00</span></div>
+          <div style="font-size:11px;color:var(--blanco-s);margin-top:10px;line-height:1.5">
+            <b style="color:var(--blanco)">Dinero actual = saldo base + ingresos − gastos</b> (desde la fecha base). Escribes hoy tus saldos reales; de ahí en adelante se actualiza solo con el cajero y la ventana Ingresos/Gastos.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="g2">
       <div class="card">
         <div class="card-title">VENTAS POR CANAL</div>
@@ -255,10 +351,8 @@ header{padding:28px 0 22px;display:flex;align-items:center;justify-content:space
       <div style="overflow-x:auto">
         <table class="tabla">
           <thead><tr>
-            <th>Fecha</th><th>Cajero</th>
-            <th class="num">Ef. Vendido</th><th class="num">Tarjeta</th>
-            <th class="num">JEP</th><th class="num">De Una</th>
-            <th class="num">Total Ventas</th><th class="num">Gastos</th>
+            <th>Fecha</th><th>Día</th><th>Cajero</th>
+            <th class="num">Ingresos</th><th class="num">Gastos</th>
           </tr></thead>
           <tbody id="tablaBody"></tbody>
         </table>
@@ -330,8 +424,8 @@ header{padding:28px 0 22px;display:flex;align-items:center;justify-content:space
   <!-- CONTABILIDAD -->
   <div class="panel" id="panel-contabilidad">
     <div class="res3">
-      <div class="res-kpi"><div class="rl">Ingresos mes</div><div class="rv" id="rc-ing" style="color:var(--verde)">$0</div></div>
-      <div class="res-kpi"><div class="rl">Gastos mes</div><div class="rv" id="rc-gas" style="color:var(--rojo)">$0</div></div>
+      <div class="res-kpi"><div class="rl">Ingresos totales (ventas + manual + aportes)</div><div class="rv" id="rc-ing" style="color:var(--verde)">$0</div></div>
+      <div class="res-kpi"><div class="rl">Gastos totales (cajero + manual + retiros)</div><div class="rv" id="rc-gas" style="color:var(--rojo)">$0</div></div>
       <div class="res-kpi"><div class="rl">Saldo neto</div><div class="rv" id="rc-net">$0</div></div>
     </div>
     <div class="card">
@@ -381,6 +475,13 @@ header{padding:28px 0 22px;display:flex;align-items:center;justify-content:space
   </div>
 </div>
 
+<div class="modal-back" id="modalBack" onclick="cerrarModal(event)">
+  <div class="modal">
+    <div class="modal-head"><span id="modalTitle"></span><button class="modal-x" onclick="cerrarModal()">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast">
   <span class="ti" id="ti"></span>
   <div class="tm" id="tm"></div>
@@ -405,6 +506,7 @@ window.onload = () => {
   document.getElementById('mov-fecha').value = new Date().toISOString().split('T')[0];
   document.getElementById('sf-f').value = new Date().toISOString().split('T')[0];
   document.getElementById('pf-f').value = new Date().toISOString().split('T')[0];
+  loadSaldos();
   cargarDatos();
 };
 
@@ -544,6 +646,11 @@ function parseReg(r) {
     g5d:r[19]||'', g5v:+r[20]||0,
     gastos:   +r[21]|| 0,
     obs:      r[22] || '',
+    ts:       r[23] || '',
+    // Ingreso BRUTO de la noche: los gastos se pagan en efectivo, así que el efectivo vendido
+    // (efCierre − efInicio) ya viene descontado. Se suman de vuelta para no restar los gastos 2 veces.
+    efectivoBruto: (+r[5]||0) + (+r[21]||0),
+    ingresos:      (+r[5]||0) + (+r[6]||0) + (+r[7]||0) + (+r[8]||0) + (+r[21]||0),
   };
 }
 
@@ -557,6 +664,7 @@ function parseCont(r) {
     monto:  +r[4] || 0,
     metodo: r[5] || '',
     comp:   r[6] || '',
+    ts:     r[7] || '',
   };
 }
 
@@ -590,36 +698,244 @@ function filtrar(data) {
 // ── RENDER TODO ──────────────────────────────────────────────
 function renderTodo() {
   const datos = filtrar(allData.registros);
-  renderKPIs(datos);
+  const movs  = filtrar(allData.movimientos);
+  renderKPIs(datos, movs);
   renderCanales(datos);
   renderTopGastos(datos);
+  renderVentasChart(datos);
   renderNoches(datos);
   renderProveedores();
   renderSocios();
   renderMovimientos();
   renderResumenCont();
+  calcDinero();
 }
 
 // ── KPIs ─────────────────────────────────────────────────────
-function renderKPIs(datos) {
-  const tv = datos.reduce((s,r)=>s+r.total,0);
-  const tg = datos.reduce((s,r)=>s+r.gastos,0);
-  const n  = datos.length;
-  const neto = tv-tg;
-  const pct  = PUNTO_EQ>0 ? Math.min(tv/PUNTO_EQ,1) : 0;
+function renderKPIs(datos, movs) {
+  movs = movs || [];
+  const ventas    = datos.reduce((s,r)=>s+r.ingresos,0);   // ventas BRUTAS del cajero
+  const gastosCaj = datos.reduce((s,r)=>s+r.gastos,0);     // gastos del cajero
+  const ingManual = movs.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const gasManual = movs.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.monto,0);
+  const ingresos  = ventas + ingManual;                    // INGRESOS totales
+  const gastos    = gastosCaj + gasManual;                 // GASTOS totales
+  const n    = datos.length;
+  const neto = ingresos - gastos;
+  const pct  = PUNTO_EQ>0 ? Math.min(ventas/PUNTO_EQ,1) : 0;
   const fm   = v=>'$'+Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 
-  set('k-ventas', fm(tv));
-  set('k-vsub',   n+' noches · prom '+fm(n?tv/n:0)+'/noche');
-  set('k-gastos', fm(tg));
-  set('k-gsub',   tv>0 ? Math.round(tg/tv*100)+'% de ventas' : '—');
+  set('k-ventas', fm(ingresos));
+  set('k-vsub',   'Ventas '+fm(ventas)+' · Otros ingresos '+fm(ingManual));
+  set('k-gastos', fm(gastos));
+  set('k-gsub',   'Cajero '+fm(gastosCaj)+' · Manual '+fm(gasManual));
   set('k-neto',   (neto<0?'-':'')+fm(Math.abs(neto)));
   document.getElementById('k-neto').style.color = neto>=0?'var(--verde)':'var(--rojo)';
   set('k-nsub',   neto>=0?'✓ Positivo':'⚠ Negativo');
   set('k-noches', n);
-  set('k-ticket', fm(n?tv/n:0));
+  set('k-ticket', fm(n?ventas/n:0));
   set('k-pe',     Math.round(pct*100)+'%');
   setTimeout(()=>{ setPW('pb-v',pct*100); setPW('pb-pe',pct*100); },100);
+}
+
+// ── GRÁFICA VENTAS DÍA A DÍA ──────────────────────────────────
+function renderVentasChart(datos) {
+  const cont = document.getElementById('ventasChart');
+  const map = {};
+  datos.forEach(r => { if (r.fecha) map[r.fecha] = (map[r.fecha]||0) + r.ingresos; });
+  const days = Object.keys(map).sort();
+  set('chartBadge', days.length + ' días');
+  if (!days.length) {
+    cont.innerHTML = '<div class="empty"><span class="empty-icon">📈</span><p>Sin ventas en este período</p></div>';
+    return;
+  }
+  const maxV = Math.max(...days.map(d=>map[d]), 1);
+  const step=34, bw=22, padL=52, padT=16, padB=52, h=240, ch=h-padT-padB;
+  const w = padL + days.length*step + 16;
+  const fm = v => '$' + Math.round(v).toLocaleString('es-EC');
+  const yOf = v => padT + ch - (v/maxV*ch);
+  let g = '';
+  for (let i=0;i<=4;i++){
+    const gv=maxV*i/4, gy=yOf(gv);
+    g += `<line class="chart-grid-line" x1="${padL}" y1="${gy}" x2="${w-8}" y2="${gy}"/>`;
+    g += `<text class="chart-axis" x="${padL-6}" y="${gy+3}" text-anchor="end">${fm(gv)}</text>`;
+  }
+  days.forEach((d,i)=>{
+    const x  = padL + i*step + (step-bw)/2;
+    const bh = Math.max(map[d]/maxV*ch, 1);
+    const by = padT + ch - bh;
+    const col = map[d]>=maxV*0.66 ? 'var(--verde)' : map[d]>=maxV*0.33 ? 'var(--dorado)' : 'var(--naranja)';
+    g += `<rect class="chart-bar" x="${x}" y="${by}" width="${bw}" height="${bh}" rx="3" fill="${col}"><title>${d}: ${fm(map[d])}</title></rect>`;
+    g += `<text class="chart-lbl" x="${x+bw/2}" y="${h-padB+16}" text-anchor="middle" transform="rotate(45 ${x+bw/2} ${h-padB+16})">${d.slice(5)}</text>`;
+  });
+  cont.innerHTML = `<svg class="chart-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${g}</svg>`;
+}
+
+// ── DINERO QUE TENEMOS (saldo acumulado, sin corte mensual) ──
+const fmMoney = v => (v<0?'-':'')+'$'+Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+
+let baseTs = '';  // momento de anclaje (ISO). Solo cuenta lo registrado DESPUÉS de este instante.
+
+// ¿El movimiento ocurrió después del momento anclado?
+function despuesDeBase(mov) {
+  if (baseTs && mov.ts) return mov.ts > baseTs;      // preciso: por timestamp
+  const fbase = document.getElementById('sa-fecha').value;
+  return !fbase || (mov.fecha && mov.fecha > fbase); // respaldo: por fecha (día base excluido)
+}
+
+function calcDinero() {
+  const g = id => parseFloat(document.getElementById(id).value)||0;
+  const fbase = document.getElementById('sa-fecha').value;
+  const base  = g('sa-produ') + g('sa-deuna') + g('sa-jep') + g('sa-efe');
+
+  const R = allData.registros.filter(despuesDeBase);
+  const M = allData.movimientos.filter(despuesDeBase);
+  const ventas    = R.reduce((s,r)=>s+r.ingresos,0);   // ventas BRUTAS
+  const gastosCaj = R.reduce((s,r)=>s+r.gastos,0);
+  const efVend    = R.reduce((s,r)=>s+r.efectivo,0);   // efectivo NETO en caja (ya descontados los gastos)
+  const ingMan    = M.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const gasMan    = M.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.monto,0);
+  const efMovMan  = M.filter(m=>String(m.metodo).toLowerCase().includes('efect'))
+                     .reduce((s,m)=>s+(m.tipo==='ingreso'?m.monto:-m.monto),0);
+
+  // Aportes / retiros de socios: solo desde la fecha "Aportes desde" (inclusive)
+  const S = allData.socios;
+  const fAportes = document.getElementById('sa-aportesDesde').value;
+  const desdeAportes = m => !fAportes || (m.fecha && m.fecha >= fAportes);
+  const aportes = S.filter(m=>m.tipo==='aporte' && desdeAportes(m)).reduce((s,m)=>s+m.monto,0);
+  const retiros = S.filter(m=>m.tipo==='retiro' && desdeAportes(m)).reduce((s,m)=>s+m.monto,0);
+
+  const ingresos = ventas + ingMan;
+  const gastos   = gastosCaj + gasMan;
+  const neto     = ingresos + aportes - gastos - retiros;
+  const total    = base + neto;
+  // El efectivo NETO (efVend) ya trae descontados los gastos de la noche; no se restan otra vez.
+  const efeActual = g('sa-efe') + efVend + efMovMan;
+
+  set('da-base', fmMoney(base));
+  set('da-ing',  fmMoney(ingresos));
+  set('da-aportes', fmMoney(aportes));
+  set('da-retiros', fmMoney(retiros));
+  set('da-gas',  fmMoney(gastos));
+  set('da-neto', fmMoney(neto));
+  document.getElementById('da-neto').style.color = neto>=0?'var(--verde)':'var(--rojo)';
+  set('da-efeactual', fmMoney(efeActual));
+  set('da-total', fmMoney(total));
+  set('da-sub', 'Base '+fmMoney(base)+'  +  neto '+fmMoney(neto)+' registrado después del anclaje');
+  set('saldoFechaBadge', fbase ? ('base '+fbase) : 'define una fecha base');
+  set('sa-tsLabel', baseTs ? new Date(baseTs).toLocaleString('es-EC') : 'sin fijar (usa la fecha base)');
+
+  guardarSaldos();
+}
+
+function guardarSaldos() {
+  const g = id => parseFloat(document.getElementById(id).value)||0;
+  try { localStorage.setItem('bypas_saldos', JSON.stringify({
+    produ:g('sa-produ'), deuna:g('sa-deuna'), jep:g('sa-jep'), efe:g('sa-efe'),
+    fecha:document.getElementById('sa-fecha').value,
+    aportesDesde:document.getElementById('sa-aportesDesde').value, ts:baseTs
+  })); } catch(e){}
+}
+
+function loadSaldos() {
+  let c = null;
+  try { c = JSON.parse(localStorage.getItem('bypas_saldos')||'null'); } catch(e){}
+  if (!c) c = { produ:140.02, deuna:0, jep:21.47, efe:91.40,
+                fecha:new Date().toISOString().split('T')[0], aportesDesde:'2026-06-01', ts:new Date().toISOString() };
+  document.getElementById('sa-produ').value = c.produ != null ? c.produ : '';
+  document.getElementById('sa-deuna').value = c.deuna != null ? c.deuna : '';
+  document.getElementById('sa-jep').value   = c.jep   != null ? c.jep   : '';
+  document.getElementById('sa-efe').value   = c.efe   != null ? c.efe   : '';
+  document.getElementById('sa-fecha').value = c.fecha || new Date().toISOString().split('T')[0];
+  document.getElementById('sa-aportesDesde').value = c.aportesDesde || '2026-06-01';
+  baseTs = c.ts || '';
+}
+
+// Fija los saldos actuales al instante presente: de aquí en adelante todo lo nuevo suma/resta.
+function fijarSaldos() {
+  baseTs = new Date().toISOString();
+  document.getElementById('sa-fecha').value = baseTs.split('T')[0];
+  guardarSaldos();
+  calcDinero();
+  toast('ok','📌','Saldos fijados', 'Desde ahora se cuenta todo lo que registres');
+}
+
+// ── MODAL DETALLE ─────────────────────────────────────────────
+function abrirModal(titulo, html) {
+  document.getElementById('modalTitle').textContent = titulo;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalBack').classList.add('open');
+}
+function cerrarModal(e) {
+  if (e && e.target && e.target.id !== 'modalBack') return; // clic dentro del modal: no cerrar
+  document.getElementById('modalBack').classList.remove('open');
+}
+
+function verDetalleIngresos() {
+  const datos = filtrar(allData.registros);
+  const movs  = filtrar(allData.movimientos).filter(m=>m.tipo==='ingreso');
+  const fm = v => '$'+v.toFixed(2);
+  let rows = '';
+  [...datos].sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(r=>{
+    if (r.ingresos>0) rows += `<div class="det-row"><div><div class="dr-desc">Ventas del cajero (bruto)</div><div class="dr-sub">${r.fecha} · ${r.diaSem} · ${r.cajero}</div></div><div class="dr-val cv">${fm(r.ingresos)}</div></div>`;
+  });
+  movs.sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(m=>{
+    rows += `<div class="det-row"><div><div class="dr-desc">${m.desc||m.cat}</div><div class="dr-sub">${m.fecha} · ${m.cat} · manual</div></div><div class="dr-val cv">${fm(m.monto)}</div></div>`;
+  });
+  const tot = datos.reduce((s,r)=>s+r.ingresos,0) + movs.reduce((s,m)=>s+m.monto,0);
+  rows += `<div class="det-tot"><span>Total ingresos</span><span class="dm cv">${fm(tot)}</span></div>`;
+  abrirModal('Detalle de ingresos', rows || '<div class="empty">Sin ingresos en el período</div>');
+}
+
+function verDetalleGastos() {
+  const datos = filtrar(allData.registros);
+  const movs  = filtrar(allData.movimientos).filter(m=>m.tipo==='gasto');
+  const fm = v => '$'+v.toFixed(2);
+  let rows = '';
+  [...datos].sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(r=>{
+    [[r.g1d,r.g1v],[r.g2d,r.g2v],[r.g3d,r.g3v],[r.g4d,r.g4v],[r.g5d,r.g5v]].forEach(([d,val])=>{
+      if (val>0) rows += `<div class="det-row"><div><div class="dr-desc">${d||'(sin descripción)'}</div><div class="dr-sub">${r.fecha} · cajero</div></div><div class="dr-val cr">${fm(+val)}</div></div>`;
+    });
+  });
+  movs.sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(m=>{
+    rows += `<div class="det-row"><div><div class="dr-desc">${m.desc||m.cat}</div><div class="dr-sub">${m.fecha} · ${m.cat} · manual</div></div><div class="dr-val cr">${fm(m.monto)}</div></div>`;
+  });
+  const tot = datos.reduce((s,r)=>s+r.gastos,0) + movs.reduce((s,m)=>s+m.monto,0);
+  rows += `<div class="det-tot"><span>Total gastos</span><span class="dm cr">${fm(tot)}</span></div>`;
+  abrirModal('Detalle de gastos', rows || '<div class="empty">Sin gastos en el período</div>');
+}
+
+function verIngresosNoche(i) {
+  const r = (window._nochesShown||[])[i];
+  if (!r) return;
+  const fm = v => '$'+v.toFixed(2);
+  let rows = '';
+  [['💵 Efectivo vendido (bruto)', r.efectivoBruto, 'cv'],
+   ['💳 Tarjeta', r.tarjeta, 'ca'],
+   ['📱 JEPFaster', r.jep, ''],
+   ['📱 De Una / Pichincha', r.deuna, '']
+  ].forEach(([l,val,cls])=>{
+    rows += `<div class="det-row"><div class="dr-desc">${l}</div><div class="dr-val ${cls}">${fm(val)}</div></div>`;
+  });
+  rows += `<div class="det-tot"><span>Total ingresos (bruto)</span><span class="dm cd">${fm(r.ingresos)}</span></div>`;
+  rows += `<div style="margin-top:12px;font-size:11px;color:var(--blanco-s);line-height:1.6">`+
+          `Gastos de la noche (pagados en efectivo): <b class="cr">${fm(r.gastos)}</b><br>`+
+          `Efectivo neto en caja: <b>${fm(r.efectivo)}</b> &nbsp;·&nbsp; caja ${fm(r.efInicio)} → ${fm(r.efCierre)}</div>`;
+  abrirModal('Ingresos · '+r.fecha+' ('+r.diaSem+')', rows);
+}
+
+function verGastosNoche(i) {
+  const r = (window._nochesShown||[])[i];
+  if (!r) return;
+  const fm = v => '$'+v.toFixed(2);
+  let rows = '';
+  [[r.g1d,r.g1v],[r.g2d,r.g2v],[r.g3d,r.g3v],[r.g4d,r.g4v],[r.g5d,r.g5v]].forEach(([d,val])=>{
+    if (d||val>0) rows += `<div class="det-row"><div class="dr-desc">${d||'(sin descripción)'}</div><div class="dr-val cr">${fm(+val)}</div></div>`;
+  });
+  if (!rows) rows = '<div class="empty" style="padding:24px">Sin gastos registrados esa noche</div>';
+  else rows += `<div class="det-tot"><span>Total gastos</span><span class="dm cr">${fm(r.gastos)}</span></div>`;
+  if (r.obs) rows += `<div style="margin-top:14px;font-size:12px;color:var(--blanco-s);line-height:1.5"><b style="color:var(--blanco)">Observaciones:</b> ${r.obs}</div>`;
+  abrirModal('Gastos · '+r.fecha, rows);
 }
 
 function set(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
@@ -628,7 +944,7 @@ function setPW(id,w){const el=document.getElementById(id);if(el)el.style.width=w
 // ── CANALES ──────────────────────────────────────────────────
 function renderCanales(datos) {
   const s={ef:0,ta:0,je:0,du:0};
-  datos.forEach(r=>{s.ef+=r.efectivo;s.ta+=r.tarjeta;s.je+=r.jep;s.du+=r.deuna;});
+  datos.forEach(r=>{s.ef+=r.efectivoBruto;s.ta+=r.tarjeta;s.je+=r.jep;s.du+=r.deuna;});
   const mx=Math.max(...Object.values(s),1);
   const fm=v=>'$'+Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
   [['ef',s.ef],['ta',s.ta],['je',s.je],['du',s.du]].forEach(([k,v])=>{
@@ -661,31 +977,32 @@ function renderTopGastos(datos) {
 function renderNoches(datos) {
   set('nbadge', datos.length+' registros');
   const sorted=[...datos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  const avg=datos.reduce((s,r)=>s+r.total,0)/(datos.length||1);
+  const avg=datos.reduce((s,r)=>s+r.ingresos,0)/(datos.length||1);
 
   // Dots
   document.getElementById('nochesGrid').innerHTML = sorted.slice(-60).map(r=>{
-    const nivel = r.total>avg*1.2?'alto':r.total<avg*0.8?'bajo':'normal';
+    const nivel = r.ingresos>avg*1.2?'alto':r.ingresos<avg*0.8?'bajo':'normal';
     return `<div class="noche-dot ${nivel}">
       ${r.fecha.slice(5)}
-      <div class="tip"><strong>${r.fecha}</strong>${r.diaSem} · Cajero: ${r.cajero}<br>Ventas: $${r.total.toFixed(2)}<br>Gastos: $${r.gastos.toFixed(2)}</div>
+      <div class="tip"><strong>${r.fecha}</strong>${r.diaSem} · Cajero: ${r.cajero}<br>Ingresos: $${r.ingresos.toFixed(2)}<br>Gastos: $${r.gastos.toFixed(2)}</div>
     </div>`;
   }).join('');
 
-  // Tabla
+  // Tabla — más reciente primero
   const fm=v=>'$'+v.toFixed(2);
-  document.getElementById('tablaBody').innerHTML = [...sorted].reverse().slice(0,50).map(r=>`
+  const shown = [...datos].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,80);
+  window._nochesShown = shown;
+  document.getElementById('tablaBody').innerHTML = shown.map((r,i)=>{
+    return `
     <tr>
       <td class="cs" style="font-family:'DM Mono',monospace;font-size:12px">${r.fecha}</td>
+      <td class="cs">${r.diaSem}</td>
       <td>${r.cajero}</td>
-      <td class="num cv">${fm(r.efectivo)}</td>
-      <td class="num ca">${fm(r.tarjeta)}</td>
-      <td class="num" style="color:var(--naranja)">${fm(r.jep)}</td>
-      <td class="num" style="color:var(--naranja)">${fm(r.deuna)}</td>
-      <td class="num cd" style="font-weight:600">${fm(r.total)}</td>
-      <td class="num cr">${fm(r.gastos)}</td>
-    </tr>`).join('')
-    || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--blanco-s)">Sin registros en este período</td></tr>';
+      <td class="num cd link-det" style="font-weight:600" onclick="verIngresosNoche(${i})" title="Clic para ver el detalle de ingresos">${fm(r.ingresos)}</td>
+      <td class="num cr link-det" onclick="verGastosNoche(${i})" title="Clic para ver el detalle de gastos">${fm(r.gastos)}</td>
+    </tr>`;
+  }).join('')
+    || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--blanco-s)">Sin registros en este período</td></tr>';
 }
 
 // ── PROVEEDORES ──────────────────────────────────────────────
@@ -847,14 +1164,19 @@ function guardarMovimiento(){
 }
 
 function renderResumenCont(){
-  const hoy=new Date();
-  const mes=allData.movimientos.filter(m=>{
-    const f=new Date(m.fecha+'T12:00:00');
-    return f.getMonth()===hoy.getMonth()&&f.getFullYear()===hoy.getFullYear();
-  });
-  const ing=mes.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
-  const gas=mes.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.monto,0);
-  const net=ing-gas;
+  // Sin corte mensual. Ingresos = ventas + ingresos manuales + aportes de socios (desde la fecha configurada).
+  const todos=allData.movimientos;
+  const ventas    = allData.registros.reduce((s,r)=>s+r.ingresos,0);
+  const gastosCaj = allData.registros.reduce((s,r)=>s+r.gastos,0);
+  const ingMan    = todos.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const gasMan    = todos.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.monto,0);
+  const fAportes  = document.getElementById('sa-aportesDesde')?.value || '2026-06-01';
+  const desdeAp   = m => !fAportes || (m.fecha && m.fecha >= fAportes);
+  const aportes   = allData.socios.filter(m=>m.tipo==='aporte' && desdeAp(m)).reduce((s,m)=>s+m.monto,0);
+  const retiros   = allData.socios.filter(m=>m.tipo==='retiro' && desdeAp(m)).reduce((s,m)=>s+m.monto,0);
+  const ing = ventas + ingMan + aportes;
+  const gas = gastosCaj + gasMan + retiros;
+  const net = ing - gas;
   const fm=v=>'$'+Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
   set('rc-ing',fm(ing)); set('rc-gas',fm(gas));
   set('rc-net',(net<0?'-':'')+fm(net));
